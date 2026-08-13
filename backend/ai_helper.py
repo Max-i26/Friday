@@ -14,8 +14,8 @@ class GeminiBrain:
     def _get_model(self):
         if not self.is_configured():
             raise ValueError("Gemini API key is not configured. Please supply an API key.")
-        # Using gemini-1.5-flash as the standard brain
-        return genai.GenerativeModel("gemini-1.5-flash")
+        # Using gemini-3.5-flash as the standard brain
+        return genai.GenerativeModel("gemini-3.5-flash")
 
     def analyze_dataset(self, profile: dict) -> dict:
         """
