@@ -1,0 +1,27 @@
+# Environments
+.venv/
+venv/
+ENV/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Local database/data directories
+backend/data/
+
+# Secrets and environment configurations
+.env
+.env.local
+.env.*.local
+
+# IDE configurations
+.idea/
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.swp

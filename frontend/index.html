@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OmniML Brain - Guided ML Pipeline & Visualizations</title>
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="css/styles.css?v=2.0">
+</head>
+<body class="dark-theme">
+    <!-- Decorative background glowing blobs -->
+    <div class="glow-bg">
+        <div class="blob blob-purple"></div>
+        <div class="blob blob-blue"></div>
+        <div class="blob blob-indigo"></div>
+    </div>
+
+    <!-- Header Navigation -->
+    <header class="glass-header">
+        <div class="header-logo">
+            <div class="logo-icon"><i class="fa-solid fa-brain"></i></div>
+            <div class="logo-text">
+                <h1>OmniML <span>Brain</span></h1>
+                <p>Interactive Machine Learning Pipeline</p>
+            </div>
+        </div>
+        <div class="header-controls">
+            <!-- Gemini API Key configuration -->
+            <div class="api-key-container glass-card">
+                <i class="fa-solid fa-key key-icon"></i>
+                <input type="password" id="gemini-key-input" placeholder="Enter Gemini API Key" />
+                <button id="save-key-btn" class="btn-primary" title="Save API Key"><i class="fa-solid fa-floppy-disk"></i> Save</button>
+            </div>
+            <div class="status-indicator">
+                <span class="status-dot green" id="backend-status-dot"></span>
+                <span class="status-text" id="backend-status-text">Backend Connected</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="main-container">
+        <!-- Dataset Loading / State Banner -->
+        <section class="banner-section glass-card" id="dataset-banner">
+            <div class="banner-content">
+                <i class="fa-solid fa-file-csv banner-icon"></i>
+                <div class="banner-details">
+                    <h3 id="banner-filename">No dataset loaded</h3>
+                    <p id="banner-stats">Upload a CSV or Excel file to begin your ML journey</p>
+                </div>
+            </div>
+            <div class="banner-actions hidden" id="banner-actions">
+                <button id="download-raw-btn" class="btn-secondary btn-sm"><i class="fa-solid fa-download"></i> Raw CSV</button>
+                <button id="download-clean-btn" class="btn-secondary btn-sm hidden"><i class="fa-solid fa-sparkles"></i> Clean CSV</button>
+                <button id="reset-dataset-btn" class="btn-danger btn-sm"><i class="fa-solid fa-rotate-left"></i> Reset</button>
+            </div>
+        </section>
+
+        <!-- Drag & Drop Upload Hero (visible when no dataset is loaded) -->
+        <section class="upload-section glass-card" id="upload-hero-section">
+            <div class="upload-area" id="drop-zone">
+                <div class="upload-icon-wrapper">
+                    <i class="fa-solid fa-cloud-arrow-up animate-float"></i>
+                </div>
+                <h2>Drag & Drop Dataset</h2>
+                <p>Support CSV or Excel formats (.csv, .xls, .xlsx) up to 150MB</p>
+                <div class="file-input-wrapper">
+                    <button class="btn-primary btn-lg">Browse File</button>
+                    <input type="file" id="file-input" accept=".csv, .xls, .xlsx" />
+                </div>
+                <div class="sample-datasets mt-4">
+                    <p class="text-muted">Or try with a sample template:</p>
+                    <div class="sample-buttons">
+                        <button class="btn-sample" data-sample="housing"><i class="fa-solid fa-house-chimney"></i> California Housing (Reg)</button>
+                        <button class="btn-sample" data-sample="iris"><i class="fa-solid fa-seedling"></i> Iris Flowers (Clf)</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Main Workspace (visible when dataset is loaded) -->
+        <section class="workspace-section hidden" id="workspace-section">
+            <!-- Sidebar Navigation Tabs -->
+            <nav class="workspace-tabs glass-card">
+                <button class="tab-link active" data-tab="tab-explorer">
+                    <i class="fa-solid fa-magnifying-glass-chart"></i> Data Profile
+                </button>
+                <button class="tab-link" data-tab="tab-cleaner" id="tab-btn-cleaner">
+                    <i class="fa-solid fa-wand-magic-sparkles"></i> Clean & Prep
+                </button>
+                <button class="tab-link" data-tab="tab-visualizer">
+                    <i class="fa-solid fa-chart-column"></i> Plot & Chat
+                </button>
+                <button class="tab-link" data-tab="tab-trainer" id="tab-btn-trainer">
+                    <i class="fa-solid fa-gears"></i> AutoML Trainer
+                </button>
+                <button class="tab-link" data-tab="tab-leaderboard" id="tab-btn-leaderboard">
+                    <i class="fa-solid fa-square-poll-vertical"></i> Leaderboard
+                </button>
+            </nav>
+
+            <!-- Workspace Content -->
+            <div class="workspace-content">
+                <!-- 1. DATA EXPLORER TAB -->
+                <div class="tab-content active" id="tab-explorer">
+                    <div class="grid-layout cols-2-1">
+                        <!-- Left: Data Preview and Columns Stats -->
+                        <div class="flex-column gap-lg">
+                            <div class="glass-card table-card">
+                                <div class="card-header">
+                                    <h3><i class="fa-solid fa-table"></i> Dataset Preview</h3>
+                                    <span class="badge" id="preview-row-count">0 Rows x 0 Columns</span>
+                                </div>
+                                <div class="table-container" id="preview-table-container">
+                                    <table id="preview-table">
+                                        <thead><tr id="preview-thead"></tr></thead>
+                                        <tbody id="preview-tbody"></tbody>
+                                    </table>
+                                </div>
+                            </div>
+
+                            <div class="glass-card">
+                                <div class="card-header">
+                                    <h3><i class="fa-solid fa-list-check"></i> Column Summaries</h3>
+                                </div>
+                                <div class="columns-grid" id="columns-summary-container">
+                                    <!-- Column details filled by JS -->
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Right: Gemini API dataset overview & suggestions -->
+                        <div class="flex-column gap-lg">
+                            <div class="glass-card glowing-border" id="gemini-insight-card">
+                                <div class="card-header border-bottom">
+                                    <div class="ai-title">
+                                        <i class="fa-solid fa-wand-magic-sparkles ai-sparkle"></i>
+                                        <h3>AI Dataset Overview</h3>
+                                    </div>
+                                    <span class="ai-pill">Gemini Brain</span>
+                                </div>
+                                <div class="ai-body">
+                                    <div class="loading-spinner-wrapper" id="ai-loading">
+                                        <div class="spinner"></div>
+                                        <p>Gemini is digesting the dataset columns and statistics...</p>
+                                    </div>
+                                    <div class="ai-content hidden" id="ai-overview-content">
+                                        <p class="dataset-desc" id="ai-dataset-summary">Loading dataset summary...</p>
+                                        
+                                        <div class="ai-suggestions mt-3">
+                                            <h4><i class="fa-solid fa-bullseye text-indigo"></i> Recommended Target columns:</h4>
+                                            <ul id="ai-targets-list" class="suggestion-list"></ul>
+                                        </div>
+
+                                        <div class="ai-suggestions mt-3">
+                                            <h4><i class="fa-solid fa-wand-magic text-indigo"></i> Suggested Visualizations:</h4>
+                                            <div class="auto-plot-cards" id="ai-plots-container"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="glass-card">
+                                <div class="card-header">
+                                    <h3><i class="fa-solid fa-chart-line"></i> Numerical Correlation</h3>
+                                </div>
+                                <div class="correlation-container">
+                                    <canvas id="correlation-chart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 2. DATA CLEANER TAB -->
+                <div class="tab-content" id="tab-cleaner">
+                    <div class="grid-layout cols-1-2">
+                        <!-- Left: Cleaning Actions -->
+                        <div class="glass-card">
+                            <div class="card-header">
+                                <h3><i class="fa-solid fa-sliders"></i> Cleaning Configuration</h3>
+                            </div>
+                            <form id="cleaner-form" class="cleaner-form mt-2">
+                                <div class="form-group">
+                                    <label><i class="fa-solid fa-trash-can"></i> Columns to Drop</label>
+                                    <div class="checkbox-group" id="clean-drop-cols-list">
+                                        <!-- Column checkboxes dynamically populated -->
+                                    </div>
+                                </div>
+
+                                <div class="form-group mt-3">
+                                    <label><i class="fa-solid fa-arrows-spin"></i> Numeric Imputation</label>
+                                    <select id="clean-impute-numeric">
+                                        <option value="mean">Mean (Average)</option>
+                                        <option value="median">Median (Middle value)</option>
+                                        <option value="most_frequent">Most Frequent (Mode)</option>
+                                        <option value="drop">Drop Rows with Missing Values</option>
+                                    </select>
+                                </div>
+
+                                <div class="form-group mt-3">
+                                    <label><i class="fa-solid fa-font"></i> Categorical Imputation</label>
+                                    <select id="clean-impute-categorical">
+                                        <option value="most_frequent">Most Frequent (Mode)</option>
+                                        <option value="drop">Drop Rows with Missing Values</option>
+                                    </select>
+                                </div>
+
+                                <div class="form-group mt-3">
+                                    <label><i class="fa-solid fa-ruler-combined"></i> Numerical Scaling</label>
+                                    <select id="clean-scale-strategy">
+                                        <option value="none">None (Keep values raw)</option>
+                                        <option value="standard">StandardScaler (Mean = 0, Std = 1)</option>
+                                        <option value="minmax">MinMaxScaler (Scale between 0 and 1)</option>
+                                    </select>
+                                    <div class="checkbox-group hidden mt-2" id="clean-scale-cols-wrapper">
+                                        <p class="text-sm text-muted">Apply scaling to columns:</p>
+                                        <div id="clean-scale-cols-list"></div>
+                                    </div>
+                                </div>
+
+                                <div class="form-group mt-3">
+                                    <label><i class="fa-solid fa-code"></i> Categorical Encoding</label>
+                                    <select id="clean-encode-strategy">
+                                        <option value="label">Label Encoding (Convert classes to 0, 1, 2...)</option>
+                                        <option value="onehot">One-Hot Encoding (Create binary columns per class)</option>
+                                        <option value="none">None</option>
+                                    </select>
+                                    <div class="checkbox-group mt-2" id="clean-encode-cols-wrapper">
+                                        <p class="text-sm text-muted">Apply encoding to columns:</p>
+                                        <div id="clean-encode-cols-list"></div>
+                                    </div>
+                                </div>
+
+                                <button type="submit" class="btn-primary btn-block mt-4 btn-lg" id="run-clean-btn">
+                                    <i class="fa-solid fa-play"></i> Clean Dataset
+                                </button>
+                            </form>
+                        </div>
+
+                        <!-- Right: Cleaning Log and Before/After stats -->
+                        <div class="flex-column gap-lg">
+                            <div class="glass-card">
+                                <div class="card-header">
+                                    <h3><i class="fa-solid fa-table-columns"></i> Dataset Cleaning Log</h3>
+                                </div>
+                                <div class="cleaning-results-summary mt-2">
+                                    <div class="cleaning-state-indicator idle" id="cleaning-status-banner">
+                                        <i class="fa-solid fa-circle-info"></i> No cleaning performed yet. Configure steps on the left.
+                                    </div>
+                                    <div id="cleaning-details-container" class="hidden mt-3">
+                                        <div class="stats-comparison">
+                                            <div class="stat-comparison-card">
+                                                <span class="label">Original Columns</span>
+                                                <span class="val" id="clean-orig-cols">0</span>
+                                            </div>
+                                            <div class="stat-comparison-card">
+                                                <span class="label">Cleaned Columns</span>
+                                                <span class="val" id="clean-new-cols">0</span>
+                                            </div>
+                                            <div class="stat-comparison-card">
+                                                <span class="label">Original Rows</span>
+                                                <span class="val" id="clean-orig-rows">0</span>
+                                            </div>
+                                            <div class="stat-comparison-card">
+                                                <span class="label">Cleaned Rows</span>
+                                                <span class="val" id="clean-new-rows">0</span>
+                                            </div>
+                                        </div>
+
+                                        <div class="cleaned-preview mt-4">
+                                            <h4>Preview of Cleaned Data:</h4>
+                                            <div class="table-container mt-2">
+                                                <table id="clean-preview-table">
+                                                    <thead><tr id="clean-preview-thead"></tr></thead>
+                                                    <tbody id="clean-preview-tbody"></tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 3. VISUALIZATION & CHAT TAB -->
+                <div class="tab-content" id="tab-visualizer">
+                    <div class="grid-layout cols-1-2">
+                        <!-- Left Sidebar: Chart Builder -->
+                        <div class="glass-card">
+                            <div class="card-header">
+                                <h3><i class="fa-solid fa-compass"></i> Custom Plot Builder</h3>
+                            </div>
+                            <div class="chart-builder-form mt-2">
+                                <div class="form-group">
+                                    <label>Chart Type</label>
+                                    <select id="plot-chart-type">
+                                        <option value="scatter">Scatter Plot</option>
+                                        <option value="line">Line Chart</option>
+                                        <option value="bar">Bar Chart</option>
+                                        <option value="box">Box Plot</option>
+                                        <option value="histogram">Histogram</option>
+                                    </select>
+                                </div>
+
+                                <div class="form-group mt-3">
+                                    <label id="plot-x-label">X Axis Column</label>
+                                    <select id="plot-x-col"></select>
+                                </div>
+
+                                <div class="form-group mt-3" id="plot-y-col-group">
+                                    <label>Y Axis Column</label>
+                                    <select id="plot-y-col"></select>
+                                </div>
+
+                                <button type="button" id="build-chart-btn" class="btn-primary btn-block mt-4">
+                                    <i class="fa-solid fa-chart-line"></i> Generate Plot
+                                </button>
+                            </div>
+                            
+                            <hr class="card-divider mt-4 mb-4" />
+
+                            <div class="chart-suggestions-container">
+                                <h4>AI Suggested Plots</h4>
+                                <div id="chart-presets" class="preset-links">
+                                    <!-- Populated by JS -->
+                                    <p class="text-muted text-sm">No suggested plots available</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Right Area: Visual Canvas & Chat Assistant -->
+                        <div class="grid-layout rows-2-1">
+                            <!-- Top: Plot Output Canvas -->
+                            <div class="glass-card canvas-card">
+                                <div class="card-header">
+                                    <h3 id="current-chart-title">Visual Explorer Canvas</h3>
+                                    <div class="chart-options">
+                                        <button id="clear-chart-btn" class="btn-icon" title="Reset Chart"><i class="fa-solid fa-trash"></i></button>
+                                    </div>
+                                </div>
+                                <div class="canvas-container" id="canvas-container">
+                                    <!-- If no chart rendering yet, show clean state -->
+                                    <div class="canvas-empty-state" id="canvas-empty">
+                                        <i class="fa-solid fa-chart-area animate-pulse"></i>
+                                        <p>Select X/Y axes on the left to paint a chart</p>
+                                    </div>
+                                    <canvas id="visual-chart" class="hidden"></canvas>
+                                </div>
+                            </div>
+
+                            <!-- Bottom: AI Tutor Chat Assistant -->
+                            <div class="glass-card chat-card">
+                                <div class="card-header border-bottom">
+                                    <div class="ai-title">
+                                        <i class="fa-solid fa-comment-dots text-indigo"></i>
+                                        <h3>AI Data Science Tutor</h3>
+                                    </div>
+                                    <span class="ai-pill">Gemini Brain</span>
+                                </div>
+                                <div class="chat-container">
+                                    <div class="chat-messages" id="chat-messages-container">
+                                        <div class="chat-message model-msg">
+                                            Hello! I am your AI ML Pipeline Brain. Ask me any question about the dataset, 
+                                            request coding snippets in Pandas, or ask about Machine Learning models. How can I help you today?
+                                        </div>
+                                    </div>
+                                    <div class="chat-input-wrapper">
+                                        <input type="text" id="chat-input" placeholder="Ask about the correlation, outliers, or how to train a model..." />
+                                        <button id="send-chat-btn" class="btn-primary"><i class="fa-solid fa-paper-plane"></i></button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 4. AUTOML MODEL BUILDER TAB -->
+                <div class="tab-content" id="tab-trainer">
+                    <div class="grid-layout cols-1-2">
+                        <!-- Left Panel: Configurations -->
+                        <div class="glass-card">
+                            <div class="card-header">
+                                <h3><i class="fa-solid fa-gear"></i> Training Panel</h3>
+                            </div>
+                            <form id="trainer-form" class="trainer-form mt-2">
+                                <div class="form-group">
+                                    <label><i class="fa-solid fa-bullseye"></i> Target Column (y)</label>
+                                    <select id="train-target-col" required></select>
+                                    <span class="help-text">What do you want the models to predict?</span>
+                                </div>
+
+                                <div class="form-group mt-3">
+                                    <label><i class="fa-solid fa-list"></i> Feature Columns (X)</label>
+                                    <div class="checkbox-group scrollable" id="train-features-list">
+                                        <!-- Checkboxes for columns -->
+                                    </div>
+                                    <span class="help-text">Which features should be used as inputs?</span>
+                                </div>
+
+                                <div class="form-group mt-3">
+                                    <label><i class="fa-solid fa-dumbbell"></i> ML Task Type</label>
+                                    <select id="train-task-type">
+                                        <option value="auto">Auto-Detect Task Type</option>
+                                        <option value="regression">Regression (Continuous Output)</option>
+                                        <option value="classification">Classification (Discrete Classes)</option>
+                                    </select>
+                                </div>
+
+                                <div class="form-group mt-3">
+                                    <label><i class="fa-solid fa-scissors"></i> Train/Test Split</label>
+                                    <div class="slider-wrapper">
+                                        <input type="range" id="train-split-ratio" min="0.1" max="0.5" step="0.05" value="0.2">
+                                        <span id="train-split-ratio-text">20% Testing</span>
+                                    </div>
+                                </div>
+
+                                <div class="form-group mt-3">
+                                    <label><i class="fa-solid fa-sliders"></i> Hyperparameters</label>
+                                    <!-- Dynamic parameters based on algorithms -->
+                                    <div class="hyperparam-card">
+                                        <div class="hyperparam-option">
+                                            <span class="label">Polynomial Degree</span>
+                                            <input type="number" id="param-poly-degree" min="1" max="5" value="2">
+                                        </div>
+                                        <div class="hyperparam-option mt-2">
+                                            <span class="label">Decision Tree Max Depth</span>
+                                            <input type="number" id="param-max-depth" min="1" max="20" placeholder="None (Unlimited)">
+                                        </div>
+                                        <div class="hyperparam-option mt-2">
+                                            <span class="label">Random Forest Estimators</span>
+                                            <input type="number" id="param-estimators" min="10" max="500" step="10" value="100">
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <button type="submit" class="btn-primary btn-block mt-4 btn-lg glow" id="train-run-btn">
+                                    <i class="fa-solid fa-microchip"></i> Train Models & Evaluate
+                                </button>
+                            </form>
+                        </div>
+
+                        <!-- Right Panel: Training status and comparison info -->
+                        <div class="flex-column gap-lg justify-center items-center text-center glass-card" id="train-empty-state">
+                            <i class="fa-solid fa-microchip animate-float text-indigo icon-giant"></i>
+                            <h2>Model Training Engine</h2>
+                            <p class="max-w-md">Configure your Target (y) and Features (X) variables on the left, then click Train. 
+                            Our AutoML engine will train 4 distinct algorithms concurrently: 
+                            Linear/Logistic, Polynomial, Decision Tree, and Random Forest, generating accuracy score benchmarks for evaluation!</p>
+                        </div>
+
+                        <div class="flex-column gap-lg hidden" id="train-processing-state">
+                            <div class="glass-card justify-center items-center text-center p-5">
+                                <div class="spinner-giant"></div>
+                                <h2 class="mt-4">Training ML Models...</h2>
+                                <p class="text-muted">Fitting curves, dividing splits, and evaluating test data metrics...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 5. RESULTS LEADERBOARD TAB -->
+                <div class="tab-content" id="tab-leaderboard">
+                    <div class="grid-layout cols-2-1">
+                        <!-- Left Side: Leaderboard charts and validation outputs -->
+                        <div class="flex-column gap-lg">
+                            <div class="glass-card">
+                                <div class="card-header">
+                                    <h3><i class="fa-solid fa-ranking-star"></i> Algorithm Leaderboard</h3>
+                                </div>
+                                <div class="leaderboard-table-container mt-2">
+                                    <table id="leaderboard-table">
+                                        <thead>
+                                            <tr id="leaderboard-thead">
+                                                <th>Algorithm</th>
+                                                <th>R² / Accuracy (Test)</th>
+                                                <th>MSE / F1-Score (Test)</th>
+                                                <th>Train Score</th>
+                                                <th>Status</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="leaderboard-tbody"></tbody>
+                                    </table>
+                                </div>
+                            </div>
+
+                            <!-- Validation Visualizations -->
+                            <div class="grid-layout cols-2">
+                                <div class="glass-card">
+                                    <div class="card-header">
+                                        <h3 id="val-plot-1-title">Validation Curve</h3>
+                                    </div>
+                                    <div class="canvas-container small" id="val-plot-1-container">
+                                        <canvas id="validation-plot-1"></canvas>
+                                        <div id="confusion-matrix-grid" class="hidden" style="width: 100%; height: 100%;"></div>
+                                    </div>
+                                </div>
+                                <div class="glass-card">
+                                    <div class="card-header">
+                                        <h3 id="val-plot-2-title">Feature Importance</h3>
+                                    </div>
+                                    <div class="canvas-container small" id="val-plot-2-container">
+                                        <canvas id="validation-plot-2"></canvas>
+                                        <div id="no-importance-banner" class="canvas-empty-state hidden">
+                                            <i class="fa-solid fa-ban"></i>
+                                            <p>Importance not applicable for this algorithm</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Decision Tree specific educational panel -->
+                            <div class="glass-card hidden" id="dt-rules-card">
+                                <div class="card-header">
+                                    <h3><i class="fa-solid fa-network-wired"></i> Decision Tree Root Splitting Rules</h3>
+                                </div>
+                                <pre id="dt-rules-content" class="code-terminal mt-2"></pre>
+                            </div>
+                        </div>
+
+                        <!-- Right Side: Gemini Evaluation Explanation Report -->
+                        <div class="flex-column gap-lg">
+                            <div class="glass-card glowing-border">
+                                <div class="card-header border-bottom">
+                                    <div class="ai-title">
+                                        <i class="fa-solid fa-wand-magic-sparkles ai-sparkle"></i>
+                                        <h3>AI Model Analysis Report</h3>
+                                    </div>
+                                    <span class="ai-pill">Gemini Brain</span>
+                                </div>
+                                <div class="ai-body">
+                                    <div class="loading-spinner-wrapper hidden" id="ai-report-loading">
+                                        <div class="spinner"></div>
+                                        <p>Gemini Brain is examining training logs and evaluating scores...</p>
+                                    </div>
+                                    <div class="ai-content-markdown" id="ai-report-content">
+                                        <div class="canvas-empty-state">
+                                            <i class="fa-solid fa-file-invoice"></i>
+                                            <p>A complete model audit report will appear here once training completes!</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <button id="export-report-btn" class="btn-primary btn-block btn-lg hidden"><i class="fa-solid fa-file-pdf"></i> Export Learning Report</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <p>&copy; 2026 OmniML Brain Project. Built for students & code-learning explorers.</p>
+    </footer>
+
+    <!-- App Logic Script -->
+    <script src="js/app.js?v=2.0"></script>
+</body>
+</html>
