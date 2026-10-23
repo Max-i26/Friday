@@ -113,6 +113,110 @@ Then visit [http://127.0.0.1:8000](http://127.0.0.1:8000) in your browser.
 
 ---
 
+## 🏗️ System Architecture
+
+### 1. High-Level Component & Service Flowchart
+
+```mermaid
+flowchart TD
+    %% Styling Definitions
+    classDef client fill:#1e1e2f,stroke:#6366f1,stroke-width:2px,color:#ffffff;
+    classDef backend fill:#111827,stroke:#10b981,stroke-width:2px,color:#ffffff;
+    classDef ml fill:#1f2937,stroke:#f59e0b,stroke-width:2px,color:#ffffff;
+    classDef ai fill:#1e1b4b,stroke:#8b5cf6,stroke-width:2px,color:#ffffff;
+    classDef storage fill:#0f172a,stroke:#3b82f6,stroke-width:2px,color:#ffffff;
+
+    subgraph ClientLayer["Frontend Client Layer (Glassmorphism SPA)"]
+        Browser["User / Student Web Browser"]
+        Dashboard["Dashboard View (index.html + styles.css)"]
+        StateMgr["State & Orchestrator (app.js)"]
+        Visualizer["Chart.js Dynamic Renderer"]
+        ChatWidget["Interactive AI Tutor Panel"]
+    end
+
+    subgraph GatewayLayer["FastAPI Gateway & Static Server"]
+        MainApp["REST API Controller (backend/main.py)"]
+        CorsMiddleware["CORS & Cache-Control Middleware"]
+        StaticServer["Frontend Asset Static Mount"]
+    end
+
+    subgraph ComputeLayer["Core ML & Intelligence Services"]
+        subgraph PipelineEngine["ML Engine (backend/ml_pipeline.py)"]
+            DataLoader["Smart Ingestion (UTF-8 / Latin-1 / BOM)"]
+            Profiler["Automated Profiler & Correlation Heatmap"]
+            Cleaner["Data Cleaner (Impute, Encode, Scale)"]
+            AutoML["AutoML (Linear, Poly, Decision Tree, Random Forest)"]
+        end
+
+        subgraph AIEngine["AI Tutor Brain (backend/ai_helper.py)"]
+            GeminiClient["Google Gemini SDK (gemini-3.5-flash)"]
+            DatasetInsight["Dataset Semantic Explainer"]
+            ModelAuditor["Overfitting / Underfitting Auditor"]
+            TutorBot["Data Science Q&A Chatbot"]
+        end
+    end
+
+    subgraph StorageLayer["Data & Persistence"]
+        SessionStore[("Active Session Store (backend/data/)")]
+        DatasetsRepo[("Sample Datasets (DataSets/)")]
+        EnvConfig[("Configuration & Secrets (.env)")]
+    end
+
+    %% Flow Connections
+    Browser --> Dashboard
+    Dashboard --> StateMgr
+    StateMgr --> Visualizer
+    StateMgr --> ChatWidget
+
+    StateMgr -->|"REST API (JSON / FormData)"| CorsMiddleware
+    CorsMiddleware --> MainApp
+    StaticServer -->|"Serve HTML / CSS / JS"| Browser
+
+    MainApp -->|"Upload File"| DataLoader
+    DataLoader --> Profiler
+    Profiler -->|"Statistics & Types"| MainApp
+
+    MainApp -->|"Clean Rules"| Cleaner
+    Cleaner -->|"Processed Matrix"| AutoML
+    AutoML -->|"Evaluation & Metrics"| MainApp
+
+    MainApp -->|"Profile Summary"| DatasetInsight
+    DatasetInsight --> GeminiClient
+    MainApp -->|"Train / Test Scores"| ModelAuditor
+    ModelAuditor --> GeminiClient
+    MainApp -->|"User Chat Question"| TutorBot
+    TutorBot --> GeminiClient
+
+    DataLoader -.->|"Read / Write"| SessionStore
+    Cleaner -.->|"Cache Clean CSV"| SessionStore
+    MainApp -.->|"Load Samples"| DatasetsRepo
+    GeminiClient -.->|"API Key"| EnvConfig
+
+    MainApp -->|"Response JSON & Coordinates"| StateMgr
+
+    class Browser,Dashboard,StateMgr,Visualizer,ChatWidget client;
+    class MainApp,CorsMiddleware,StaticServer backend;
+    class DataLoader,Profiler,Cleaner,AutoML ml;
+    class GeminiClient,DatasetInsight,ModelAuditor,TutorBot ai;
+    class SessionStore,DatasetsRepo,EnvConfig storage;
+```
+
+### 2. End-to-End Pipeline Execution Flowchart
+
+```mermaid
+flowchart LR
+    Ingest["1. Ingest Data\n(CSV / Excel Drag & Drop)"] --> Resolve["2. Resolve Encoding\n(UTF-8 / Latin-1 / BOM)"]
+    Resolve --> Profile["3. EDA & Profiling\n(Stats, Nulls, Correlation)"]
+    Profile --> Clean["4. Clean & Preprocess\n(Impute, Scale, One-Hot)"]
+    Clean --> Detect["5. Task Auto-Detect\n(Regression vs Classification)"]
+    Detect --> Train["6. AutoML Fit\n(Linear, Poly, Tree, Forest)"]
+    Train --> Eval["7. Multi-Metric Eval\n(R2, MAE, Acc, Confusion Matrix)"]
+    Eval --> Audit["8. Gemini AI Tutor Audit\n(Overfitting Diagnosis & Report)"]
+    Audit --> Visualize["9. Dynamic Plots\n(Chart.js Custom Studio)"]
+```
+
+---
+
 ## 📂 Project Architecture
 
 ```
