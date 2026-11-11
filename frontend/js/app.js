@@ -4,6 +4,8 @@ let state = {
     filename: null,
     profile: null,
     cleanProfile: null,
+    aiProvider: localStorage.getItem("ai_provider") || "claude",
+    claudeKey: localStorage.getItem("claude_api_key") || "",
     geminiKey: localStorage.getItem("gemini_api_key") || "",
     chatHistory: [],
     evaluationResults: null
@@ -17,10 +19,23 @@ let valChartInstance2 = null;
 
 // DOM Elements
 const elements = {
-    geminiKeyInput: document.getElementById("gemini-key-input"),
-    saveKeyBtn: document.getElementById("save-key-btn"),
+    aiProviderSelect: document.getElementById("ai-provider-select"),
+    toggleKeyModalBtn: document.getElementById("toggle-key-modal-btn"),
+    closeKeyModalBtn: document.getElementById("close-key-modal-btn"),
+    aiSettingsModal: document.getElementById("ai-settings-modal"),
+    modalProviderSelect: document.getElementById("modal-provider-select"),
+    modalClaudeKey: document.getElementById("modal-claude-key"),
+    modalGeminiKey: document.getElementById("modal-gemini-key"),
+    saveAllKeysBtn: document.getElementById("save-all-keys-btn"),
+    aiChatPill: document.getElementById("ai-chat-pill"),
+    aiReportPill: document.getElementById("ai-report-pill"),
+    aiReportThinking: document.getElementById("ai-report-thinking"),
+    aiReportThinkingText: document.getElementById("ai-report-thinking-text"),
+    aiReportLoadingText: document.getElementById("ai-report-loading-text"),
+
     backendStatusDot: document.getElementById("backend-status-dot"),
     backendStatusText: document.getElementById("backend-status-text"),
+
     
     // Upload & Banner
     dropZone: document.getElementById("drop-zone"),
@@ -114,34 +129,129 @@ const elements = {
 };
 
 // Init app
-function init() {
-    // Populate stored API Key
-    if (state.geminiKey) {
-        elements.geminiKeyInput.value = state.geminiKey;
-        setAiIndicator(true);
-    } else {
-        setAiIndicator(false);
+async function init() {
+    // Sync AI provider and models from backend configuration
+    try {
+        const cfgRes = await fetch("/api/config/ai");
+        if (cfgRes.ok) {
+            const cfg = await cfgRes.json();
+            if (cfg.active_provider) {
+                state.aiProvider = cfg.active_provider;
+                localStorage.setItem("ai_provider", cfg.active_provider);
+            }
+        }
+    } catch (e) {
+        console.warn("Could not load AI config from backend, using defaults.");
     }
+
+    if (elements.aiProviderSelect) {
+        elements.aiProviderSelect.value = state.aiProvider;
+    }
+    if (elements.modalProviderSelect) {
+        elements.modalProviderSelect.value = state.aiProvider;
+    }
+    if (elements.modalClaudeKey) {
+        elements.modalClaudeKey.value = state.claudeKey;
+    }
+    if (elements.modalGeminiKey) {
+        elements.modalGeminiKey.value = state.geminiKey;
+    }
+
+    updateAiProviderUi();
 
     // Set up Listeners
     setupEventListeners();
     checkBackendStatus();
 }
 
+function updateAiProviderUi() {
+    const isClaude = state.aiProvider === "claude";
+    if (elements.aiChatPill) {
+        elements.aiChatPill.innerHTML = isClaude 
+            ? '<i class="fa-solid fa-brain text-purple"></i> Claude Opus 5.5 (Thinking)' 
+            : '<i class="fa-solid fa-bolt text-blue"></i> Gemini 3.5 Flash';
+    }
+    if (elements.aiReportPill) {
+        elements.aiReportPill.innerHTML = isClaude 
+            ? '<i class="fa-solid fa-brain text-purple"></i> Claude Opus 5.5' 
+            : '<i class="fa-solid fa-bolt text-blue"></i> Gemini 3.5 Flash';
+    }
+    if (elements.aiReportLoadingText) {
+        elements.aiReportLoadingText.innerText = isClaude
+            ? "Claude Brain is examining training logs and reasoning through results..."
+            : "Gemini Brain is examining training logs and evaluating scores...";
+    }
+    if (elements.aiProviderSelect) {
+        elements.aiProviderSelect.value = state.aiProvider;
+    }
+}
+
 // Set up UI Event Listeners
 function setupEventListeners() {
-    // API Key save
-    elements.saveKeyBtn.addEventListener("click", () => {
-        const key = elements.geminiKeyInput.value.trim();
-        state.geminiKey = key;
-        localStorage.setItem("gemini_api_key", key);
-        showNotification("Gemini API key saved!", "success");
-        setAiIndicator(!!key);
-        if (state.datasetId) {
-            // Trigger analyze dataset again with new key
-            analyzeDatasetAI();
-        }
-    });
+    // AI Provider dropdown change
+    if (elements.aiProviderSelect) {
+        elements.aiProviderSelect.addEventListener("change", async (e) => {
+            state.aiProvider = e.target.value;
+            localStorage.setItem("ai_provider", state.aiProvider);
+            updateAiProviderUi();
+            try {
+                await fetch("/api/config/ai", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ provider: state.aiProvider })
+                });
+            } catch (err) {}
+            showNotification(`Switched AI Brain to ${state.aiProvider === 'claude' ? 'Claude Opus 5.5' : 'Gemini 3.5'}!`, "success");
+            if (state.datasetId) {
+                analyzeDatasetAI();
+            }
+        });
+    }
+
+    // Modal open / close
+    if (elements.toggleKeyModalBtn) {
+        elements.toggleKeyModalBtn.addEventListener("click", () => {
+            elements.aiSettingsModal.classList.remove("hidden");
+        });
+    }
+    if (elements.closeKeyModalBtn) {
+        elements.closeKeyModalBtn.addEventListener("click", () => {
+            elements.aiSettingsModal.classList.add("hidden");
+        });
+    }
+
+    // Save Keys from Modal
+    if (elements.saveAllKeysBtn) {
+        elements.saveAllKeysBtn.addEventListener("click", async () => {
+            state.aiProvider = elements.modalProviderSelect.value;
+            state.claudeKey = elements.modalClaudeKey.value.trim();
+            state.geminiKey = elements.modalGeminiKey.value.trim();
+
+            localStorage.setItem("ai_provider", state.aiProvider);
+            if (state.claudeKey) localStorage.setItem("claude_api_key", state.claudeKey);
+            if (state.geminiKey) localStorage.setItem("gemini_api_key", state.geminiKey);
+
+            try {
+                await fetch("/api/config/ai", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        provider: state.aiProvider,
+                        claude_key: state.claudeKey || undefined,
+                        gemini_key: state.geminiKey || undefined
+                    })
+                });
+            } catch (err) {}
+
+            updateAiProviderUi();
+            elements.aiSettingsModal.classList.add("hidden");
+            showNotification("AI Brain configuration updated successfully!", "success");
+            if (state.datasetId) {
+                analyzeDatasetAI();
+            }
+        });
+    }
+
 
     // Tab toggles
     elements.tabLinks.forEach(link => {
@@ -617,24 +727,27 @@ function renderCorrelationHeatmap() {
     }
 }
 
-// Call Gemini API to analyze column metadata and suggest visualization
+// Call AI Brain (Claude or Gemini) to analyze column metadata and suggest visualization
 async function analyzeDatasetAI() {
     elements.aiLoading.classList.remove("hidden");
     elements.aiOverviewContent.classList.add("hidden");
 
     try {
+        const activeKey = state.aiProvider === "claude" ? state.claudeKey : state.geminiKey;
         const response = await fetch("/api/analyze", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
                 dataset_id: state.datasetId,
-                api_key: state.geminiKey
+                provider: state.aiProvider,
+                api_key: activeKey || undefined
             })
         });
 
-        if (!response.ok) throw new Error("Gemini analyze call failed.");
+        if (!response.ok) throw new Error("AI analysis call failed.");
         
         const data = await response.json();
+
         
         // Show contents
         elements.aiLoading.classList.add("hidden");
@@ -1121,7 +1234,7 @@ function clearPlotCanvas() {
     elements.currentChartTitle.innerText = "Visual Explorer Canvas";
 }
 
-// Chat with Gemini Tutor
+// Chat with AI Tutor Brain (Claude or Gemini)
 async function sendChatMessage() {
     const query = elements.chatInput.value.trim();
     if (!query) return;
@@ -1130,16 +1243,22 @@ async function sendChatMessage() {
     appendChatMessage("user", query);
     elements.chatInput.value = "";
 
+    const isClaude = state.aiProvider === "claude";
+    const brainName = isClaude ? "Claude Brain" : "Gemini Brain";
+    const actionText = isClaude ? "is reasoning through data..." : "is thinking...";
+
     // Add loading block
-    const loadingDiv = appendChatMessage("model", `<div class="spinner" style="width:16px;height:16px;border-width:2px;display:inline-block;vertical-align:middle;margin-right:8px;"></div> Gemini Brain is thinking...`);
+    const loadingDiv = appendChatMessage("model", `<div class="spinner" style="width:16px;height:16px;border-width:2px;display:inline-block;vertical-align:middle;margin-right:8px;"></div> ${brainName} ${actionText}`);
 
     try {
+        const activeKey = state.aiProvider === "claude" ? state.claudeKey : state.geminiKey;
         const response = await fetch("/api/chat", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
                 dataset_id: state.datasetId,
-                api_key: state.geminiKey,
+                provider: state.aiProvider,
+                api_key: activeKey || undefined,
                 history: state.chatHistory,
                 query: query
             })
@@ -1147,11 +1266,11 @@ async function sendChatMessage() {
 
         loadingDiv.remove();
 
-        if (!response.ok) throw new Error("Chat api request failed.");
+        if (!response.ok) throw new Error("Chat API request failed.");
 
         const data = await response.json();
         
-        appendChatMessage("model", data.response);
+        appendChatMessage("model", data.response, data.thinking);
         
         // Save history
         state.chatHistory.push({ role: "user", text: query });
@@ -1159,17 +1278,29 @@ async function sendChatMessage() {
 
     } catch (error) {
         loadingDiv.remove();
-        appendChatMessage("model", `Error connecting to Gemini Brain: ${error.message}. Please configure your API key at the top.`);
+        appendChatMessage("model", `Error connecting to ${brainName}: ${error.message}. Please configure your API key in Settings.`);
     }
 }
 
-function appendChatMessage(role, text) {
+function appendChatMessage(role, text, thinking = null) {
     const msg = document.createElement("div");
     msg.className = `chat-message ${role === "user" ? "user-msg" : "model-msg"}`;
     
-    // Simple markdown code block parser
+    let htmlContent = "";
+    if (thinking) {
+        const escapedThinking = thinking
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;");
+        htmlContent += `
+            <details class="chat-thought-bubble">
+                <summary><i class="fa-solid fa-brain text-purple"></i> View Claude's Thought Process</summary>
+                <div class="chat-thought-content">${escapedThinking}</div>
+            </details>
+        `;
+    }
+
     if (role === "model") {
-        // Convert ```python ... ```
         let formatted = text
             .replace(/&/g, "&amp;")
             .replace(/</g, "&lt;")
@@ -1179,12 +1310,17 @@ function appendChatMessage(role, text) {
             .replace(/\*\*([\s\S]*?)\*\*/g, '<strong>$1</strong>')
             .replace(/\*([\s\S]*?)\*/g, '<em>$1</em>')
             .replace(/\n/g, "<br/>");
-        msg.innerHTML = formatted;
+        htmlContent += formatted;
+        msg.innerHTML = htmlContent;
     } else {
         msg.innerText = text;
     }
     
     elements.chatMessagesContainer.appendChild(msg);
+    elements.chatMessagesContainer.scrollTop = elements.chatMessagesContainer.scrollHeight;
+    return msg;
+}
+
     elements.chatMessagesContainer.scrollTop = elements.chatMessagesContainer.scrollHeight;
     return msg;
 }
@@ -1578,19 +1714,22 @@ function renderModelValidationPlots(modelName, modelData) {
     }
 }
 
-// Request Gemini explanation of results
+// Request AI Tutor Brain (Claude or Gemini) explanation of results
 async function generateModelReportAI(topModelName, topModelData) {
     elements.aiReportLoading.classList.remove("hidden");
     elements.aiReportContent.innerHTML = "";
     elements.exportReportBtn.classList.add("hidden");
+    if (elements.aiReportThinking) elements.aiReportThinking.classList.add("hidden");
 
     try {
+        const activeKey = state.aiProvider === "claude" ? state.claudeKey : state.geminiKey;
         const response = await fetch("/api/explain", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
                 dataset_id: state.datasetId,
-                api_key: state.geminiKey,
+                provider: state.aiProvider,
+                api_key: activeKey || undefined,
                 evaluation_results: topModelData
             })
         });
@@ -1600,6 +1739,12 @@ async function generateModelReportAI(topModelName, topModelData) {
         const data = await response.json();
         
         elements.aiReportLoading.classList.add("hidden");
+
+        // Display thinking block if available (Claude)
+        if (data.thinking && elements.aiReportThinking && elements.aiReportThinkingText) {
+            elements.aiReportThinking.classList.remove("hidden");
+            elements.aiReportThinkingText.innerText = data.thinking;
+        }
         
         // Parse simple markdown
         let formatted = data.explanation
@@ -1621,7 +1766,7 @@ async function generateModelReportAI(topModelName, topModelData) {
         elements.aiReportContent.innerHTML = `
             <div class="canvas-empty-state">
                 <i class="fa-solid fa-triangle-exclamation" style="color:var(--error)"></i>
-                <p>AI Explanation Report failed to load. Please configure your API key at the top.</p>
+                <p>AI Explanation Report failed to load. Please configure your API key in Settings.</p>
             </div>
         `;
     }

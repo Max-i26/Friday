@@ -12,7 +12,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <link rel="stylesheet" href="css/styles.css?v=2.0">
+    <link rel="stylesheet" href="css/styles.css?v=3.0">
 </head>
 <body class="dark-theme">
     <!-- Decorative background glowing blobs -->
@@ -32,11 +32,14 @@
             </div>
         </div>
         <div class="header-controls">
-            <!-- Gemini API Key configuration -->
-            <div class="api-key-container glass-card">
-                <i class="fa-solid fa-key key-icon"></i>
-                <input type="password" id="gemini-key-input" placeholder="Enter Gemini API Key" />
-                <button id="save-key-btn" class="btn-primary" title="Save API Key"><i class="fa-solid fa-floppy-disk"></i> Save</button>
+            <!-- AI Provider & Brain Selector -->
+            <div class="ai-provider-selector glass-card">
+                <i class="fa-solid fa-brain text-purple"></i>
+                <select id="ai-provider-select" title="Choose AI Brain Provider">
+                    <option value="claude" selected>Claude Opus 5.5 (Thinking)</option>
+                    <option value="gemini">Gemini 3.5 Flash</option>
+                </select>
+                <button id="toggle-key-modal-btn" class="btn-secondary btn-sm" title="Configure API Keys"><i class="fa-solid fa-gear"></i> Settings</button>
             </div>
             <div class="status-indicator">
                 <span class="status-dot green" id="backend-status-dot"></span>
@@ -44,6 +47,37 @@
             </div>
         </div>
     </header>
+
+    <!-- AI Settings Modal -->
+    <div id="ai-settings-modal" class="modal-overlay hidden">
+        <div class="modal-card glass-card">
+            <div class="modal-header">
+                <h3><i class="fa-solid fa-sliders text-indigo"></i> AI Brain & API Keys</h3>
+                <button id="close-key-modal-btn" class="btn-close" aria-label="Close modal">&times;</button>
+            </div>
+            <div class="modal-body mt-3">
+                <div class="form-group mb-3">
+                    <label><i class="fa-solid fa-robot"></i> Active AI Brain</label>
+                    <select id="modal-provider-select">
+                        <option value="claude">Claude Opus 5.5 (Extended Thinking Enabled)</option>
+                        <option value="gemini">Google Gemini 3.5 Flash</option>
+                    </select>
+                </div>
+                <div class="form-group mb-3">
+                    <label><i class="fa-solid fa-key"></i> Anthropic Claude API Key</label>
+                    <input type="password" id="modal-claude-key" placeholder="sk-ant-..." />
+                    <span class="help-text">Powers step-by-step thinking & deep statistical audits.</span>
+                </div>
+                <div class="form-group mb-3">
+                    <label><i class="fa-solid fa-key"></i> Google Gemini API Key</label>
+                    <input type="password" id="modal-gemini-key" placeholder="AIzaSy... or AQ..." />
+                    <span class="help-text">Alternative fast model from Google AI Studio.</span>
+                </div>
+                <button id="save-all-keys-btn" class="btn-primary btn-block mt-3"><i class="fa-solid fa-check"></i> Save & Apply</button>
+            </div>
+        </div>
+    </div>
+
 
     <main class="main-container">
         <!-- Dataset Loading / State Banner -->
@@ -363,7 +397,7 @@
                                         <i class="fa-solid fa-comment-dots text-indigo"></i>
                                         <h3>AI Data Science Tutor</h3>
                                     </div>
-                                    <span class="ai-pill">Gemini Brain</span>
+                                    <span class="ai-pill" id="ai-chat-pill"><i class="fa-solid fa-brain"></i> Claude Opus 5.5 (Thinking)</span>
                                 </div>
                                 <div class="chat-container">
                                     <div class="chat-messages" id="chat-messages-container">
@@ -533,13 +567,17 @@
                                         <i class="fa-solid fa-wand-magic-sparkles ai-sparkle"></i>
                                         <h3>AI Model Analysis Report</h3>
                                     </div>
-                                    <span class="ai-pill">Gemini Brain</span>
+                                    <span class="ai-pill" id="ai-report-pill"><i class="fa-solid fa-brain"></i> Claude Opus 5.5</span>
                                 </div>
                                 <div class="ai-body">
                                     <div class="loading-spinner-wrapper hidden" id="ai-report-loading">
                                         <div class="spinner"></div>
-                                        <p>Gemini Brain is examining training logs and evaluating scores...</p>
+                                        <p id="ai-report-loading-text">Claude Brain is examining training logs and reasoning through results...</p>
                                     </div>
+                                    <details class="thought-bubble hidden" id="ai-report-thinking">
+                                        <summary><i class="fa-solid fa-brain text-purple"></i> View Claude's Thought Process</summary>
+                                        <div class="thought-content" id="ai-report-thinking-text"></div>
+                                    </details>
                                     <div class="ai-content-markdown" id="ai-report-content">
                                         <div class="canvas-empty-state">
                                             <i class="fa-solid fa-file-invoice"></i>
@@ -563,6 +601,6 @@
     </footer>
 
     <!-- App Logic Script -->
-    <script src="js/app.js?v=2.0"></script>
+    <script src="js/app.js?v=3.0"></script>
 </body>
 </html>

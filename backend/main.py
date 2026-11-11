@@ -11,7 +11,7 @@ from fastapi.responses import FileResponse
 
 # Use absolute backend imports assuming app is run from the workspace root
 from backend.ml_pipeline import MLPipeline
-from backend.ai_helper import GeminiBrain
+from backend.ai_helper import get_ai_brain, GeminiBrain, ClaudeBrain
 
 app = FastAPI(title="No-Code ML Pipeline & Visualization API")
 
@@ -76,10 +76,12 @@ class CleanRequest(BaseModel):
 class AnalyzeRequest(BaseModel):
     dataset_id: str
     api_key: Optional[str] = None
+    provider: Optional[str] = None
 
 class ChatRequest(BaseModel):
     dataset_id: str
     api_key: Optional[str] = None
+    provider: Optional[str] = None
     history: List[Dict[str, str]]
     query: str
 
@@ -96,7 +98,14 @@ class TrainRequest(BaseModel):
 class ExplainRequest(BaseModel):
     dataset_id: str
     api_key: Optional[str] = None
+    provider: Optional[str] = None
     evaluation_results: Dict[str, Any]
+
+class AIConfigUpdate(BaseModel):
+    provider: Optional[str] = None
+    claude_key: Optional[str] = None
+    gemini_key: Optional[str] = None
+
 
 
 @app.post("/api/upload")
@@ -187,7 +196,7 @@ def analyze_dataset(req: AnalyzeRequest):
     if not profile:
         raise HTTPException(status_code=404, detail="Dataset profile meta could not be found.")
 
-    brain = GeminiBrain(api_key=req.api_key)
+    brain = get_ai_brain(provider=req.provider, api_key=req.api_key)
     analysis = brain.analyze_dataset(profile)
     return analysis
 
@@ -210,9 +219,9 @@ def chat_query(req: ChatRequest):
     if not profile:
         raise HTTPException(status_code=404, detail="Dataset profile not found.")
 
-    brain = GeminiBrain(api_key=req.api_key)
+    brain = get_ai_brain(provider=req.provider, api_key=req.api_key)
     response = brain.chat_query(profile, req.history, req.query)
-    return {"response": response}
+    return response
 
 
 @app.post("/api/train")
@@ -255,7 +264,7 @@ def train_model(req: TrainRequest):
 @app.post("/api/explain")
 def explain_results(req: ExplainRequest):
     """
-    Uses Gemini API to interpret model training evaluation metrics.
+    Uses AI Tutor Brain (Claude or Gemini) to interpret model training evaluation metrics.
     """
     folder = get_dataset_folder(req.dataset_id)
     profile = get_profile_metadata(folder, "clean") or get_profile_metadata(folder, "raw")
@@ -263,9 +272,41 @@ def explain_results(req: ExplainRequest):
     if not profile:
         raise HTTPException(status_code=404, detail="Dataset profile metadata not found.")
 
-    brain = GeminiBrain(api_key=req.api_key)
-    explanation = brain.explain_model_results(req.evaluation_results, profile)
-    return {"explanation": explanation}
+    brain = get_ai_brain(provider=req.provider, api_key=req.api_key)
+    result = brain.explain_model_results(req.evaluation_results, profile)
+    return result
+
+
+@app.get("/api/config/ai")
+def get_ai_config():
+    """
+    Retrieves current AI provider status, available models, and active brain.
+    """
+    claude_key = os.environ.get("ANTHROPIC_API_KEY", "")
+    gemini_key = os.environ.get("GEMINI_API_KEY", "")
+    active = os.environ.get("AI_PROVIDER", "claude" if claude_key else "gemini")
+    return {
+        "active_provider": active,
+        "has_claude": bool(claude_key),
+        "has_gemini": bool(gemini_key),
+        "claude_model": "Claude Opus 5.5 (Thinking Enabled)",
+        "gemini_model": "Gemini 3.5 Flash"
+    }
+
+
+@app.post("/api/config/ai")
+def update_ai_config(cfg: AIConfigUpdate):
+    """
+    Updates active AI brain provider and optional keys dynamically.
+    """
+    if cfg.provider:
+        os.environ["AI_PROVIDER"] = cfg.provider
+    if cfg.claude_key:
+        os.environ["ANTHROPIC_API_KEY"] = cfg.claude_key
+    if cfg.gemini_key:
+        os.environ["GEMINI_API_KEY"] = cfg.gemini_key
+    return get_ai_config()
+
 
 @app.get("/api/plot-data")
 def get_plot_data(dataset_id: str, x: str, y: Optional[str] = None, type: str = "scatter"):

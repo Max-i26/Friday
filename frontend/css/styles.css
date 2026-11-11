@@ -1265,3 +1265,169 @@ select:focus, input[type="number"]:focus, input[type="text"]:focus, input[type="
     background: rgba(10, 14, 23, 0.8);
     margin-top: auto;
 }
+
+/* ==========================================================================
+   AI Brain Provider Selector & Settings Modal
+   ========================================================================== */
+.ai-provider-selector {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.4rem 0.8rem;
+    background: rgba(23, 33, 61, 0.7);
+    border: 1px solid var(--border-glass);
+    border-radius: 9999px;
+    backdrop-filter: blur(12px);
+    transition: var(--transition-smooth);
+}
+
+.ai-provider-selector:hover {
+    border-color: var(--accent-purple);
+    box-shadow: 0 0 16px rgba(139, 92, 246, 0.2);
+}
+
+.ai-provider-selector select {
+    background: transparent;
+    border: none;
+    color: var(--text-primary);
+    font-size: 0.85rem;
+    font-weight: 500;
+    cursor: pointer;
+    outline: none;
+}
+
+.ai-provider-selector select option {
+    background: #0f172a;
+    color: var(--text-primary);
+}
+
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.75);
+    backdrop-filter: blur(8px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    animation: fadeIn 0.2s ease;
+}
+
+.modal-card {
+    width: 90%;
+    max-width: 500px;
+    background: rgba(15, 23, 42, 0.95);
+    border: 1px solid var(--border-active);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6), 0 0 30px rgba(139, 92, 246, 0.25);
+    padding: 1.8rem;
+    border-radius: 16px;
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--border-glass);
+    padding-bottom: 0.8rem;
+}
+
+.modal-header h3 {
+    font-size: 1.15rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.btn-close {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    font-size: 1.5rem;
+    line-height: 1;
+    cursor: pointer;
+    transition: var(--transition-smooth);
+}
+
+.btn-close:hover {
+    color: var(--error);
+    transform: scale(1.1);
+}
+
+/* ==========================================================================
+   Claude Extended Thinking Accordion
+   ========================================================================== */
+.thought-bubble {
+    margin: 1rem 0;
+    background: rgba(139, 92, 246, 0.08);
+    border: 1px solid rgba(139, 92, 246, 0.25);
+    border-radius: 10px;
+    overflow: hidden;
+    transition: var(--transition-smooth);
+}
+
+.thought-bubble summary {
+    padding: 0.7rem 1rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #c4b5fd;
+    cursor: pointer;
+    user-select: none;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: rgba(139, 92, 246, 0.12);
+}
+
+.thought-bubble summary:hover {
+    background: rgba(139, 92, 246, 0.2);
+    color: #ede9fe;
+}
+
+.thought-bubble[open] summary {
+    border-bottom: 1px solid rgba(139, 92, 246, 0.2);
+}
+
+.thought-content {
+    padding: 1rem;
+    font-size: 0.8rem;
+    line-height: 1.6;
+    color: #ddd6fe;
+    white-space: pre-wrap;
+    max-height: 280px;
+    overflow-y: auto;
+    font-family: 'JetBrains Mono', 'Courier New', monospace;
+    background: rgba(10, 14, 23, 0.5);
+}
+
+/* Chat-specific thinking bubble */
+.chat-thought-bubble {
+    margin: 0.4rem 0 0.8rem 0;
+    background: rgba(139, 92, 246, 0.06);
+    border: 1px dashed rgba(139, 92, 246, 0.3);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.chat-thought-bubble summary {
+    padding: 0.4rem 0.7rem;
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: #a78bfa;
+    cursor: pointer;
+    background: rgba(139, 92, 246, 0.08);
+}
+
+.chat-thought-content {
+    padding: 0.6rem 0.8rem;
+    font-size: 0.75rem;
+    color: #c4b5fd;
+    white-space: pre-wrap;
+    max-height: 200px;
+    overflow-y: auto;
+    font-family: 'JetBrains Mono', monospace;
+    background: rgba(10, 14, 23, 0.4);
+}
+

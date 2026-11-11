@@ -5,10 +5,11 @@
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![FastAPI](https://img.shields.io/badge/backend-FastAPI-009688.svg)](https://fastapi.tiangolo.com/)
 [![scikit-learn](https://img.shields.io/badge/ML-scikit--learn-F7931E.svg)](https://scikit-learn.org/)
+[![Anthropic Claude](https://img.shields.io/badge/AI-Claude%20Opus%205.5%20(Thinking)-D97706.svg)](https://console.anthropic.com/)
 [![Google Gemini](https://img.shields.io/badge/AI-Gemini%203.5%20Flash-4285F4.svg)](https://aistudio.google.com/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-**Friday (OmniML Brain)** is an educational, interactive web platform that democratizes machine learning for students and learners. Upload any dataset, and Friday will automatically profile the columns, clean and preprocess data, generate visualizations, train baseline machine learning models, and use **Google Gemini** as a built-in "AI Brain" tutor to explain what the statistics, plots, and evaluation metrics actually mean.
+**Friday (OmniML Brain)** is an educational, interactive web platform that democratizes machine learning for students and learners. Upload any dataset, and Friday will automatically profile the columns, clean and preprocess data, generate visualizations, train baseline machine learning models, and use **Anthropic Claude (with Extended Thinking)** or **Google Gemini** as a built-in "AI Brain" tutor to explain what the statistics, plots, and evaluation metrics actually mean.
 
 ---
 
@@ -25,7 +26,7 @@ python run.py
 ```
 
 ### What `python run.py` does automatically:
-1. 📦 Creates a isolated Python virtual environment (`.venv`) if one doesn't exist.
+1. 📦 Creates an isolated Python virtual environment (`.venv`) if one doesn't exist.
 2. 📥 Installs all required packages from `backend/requirements.txt`.
 3. 🔎 Finds an available port on your machine (starting at `8000`).
 4. 🚀 Boots the FastAPI / Uvicorn server.
@@ -33,20 +34,22 @@ python run.py
 
 ---
 
-## 🔑 Setting up the Gemini AI Tutor (Optional)
+## 🔑 Setting up the AI Tutor Brain (Claude / Gemini)
 
-Friday includes an AI tutor powered by Google Gemini. While core data profiling and AutoML work offline without a key, configuring the key unlocks AI dataset insights, audit reports, and the interactive chatbot:
+Friday supports two AI Brains that you can switch between with one click:
+- 🧠 **Anthropic Claude Opus 5.5 / Sonnet (with Extended Thinking)**: Delivers step-by-step statistical reasoning, deep metric diagnosis, and allows students to view Claude's internal thought process.
+- ⚡ **Google Gemini 3.5 Flash**: Lightning-fast multimodal analysis and conversational tutoring.
 
-1. Get a free API key from [Google AI Studio](https://aistudio.google.com/).
-2. Create a `.env` file in the project root:
-   ```bash
-   cp .env.example .env
-   ```
-3. Add your key inside `.env`:
-   ```env
-   GEMINI_API_KEY=your_gemini_api_key_here
-   ```
-*(Alternatively, you can enter or update your API key directly in the top-right settings modal on the web interface at any time!)*
+You can configure keys either directly in the web UI Settings modal (top-right gear icon) or in your `.env` file:
+
+```env
+# In .env:
+ANTHROPIC_API_KEY=your_anthropic_api_key_here
+GEMINI_API_KEY=your_gemini_api_key_here
+AI_PROVIDER=claude
+```
+*(The system automatically saves `.env` locally and shields it from Git tracking via `.gitignore`.)*
+
 
 ---
 
